@@ -11,7 +11,13 @@ const (
 )
 
 type UserDb struct {
-	Data []models.UserReg
+	Data map[int]models.UserReg
+}
+
+func NewUserDb() *UserDb {
+	return &UserDb{
+		Data: make(map[int]models.UserReg),
+	}
 }
 
 func (user *UserDb) Insert(user_req models.UserReg) *models.UserResponse {
@@ -29,11 +35,22 @@ func (user *UserDb) Insert(user_req models.UserReg) *models.UserResponse {
 
 	// append user to userdb
 
-	user.Data = append(user.Data, user_req)
+	user.Data[user_req.Id] = user_req
 
 	// creating response data
 	res_data := models.RegisterDataResponse{
-		UserReg: user_req,
+		User: user_req,
+	}
+
+	return CreateSuccessResponse(res_data)
+
+}
+
+func (user *UserDb) Select() *models.UserResponse {
+
+	// prepareing the response data
+	res_data := models.UserListREsponse{
+		User: user.Data,
 	}
 
 	return CreateSuccessResponse(res_data)
@@ -50,7 +67,7 @@ func CreateFaildResponse(code error_code.ErrorCode, message string) *models.User
 	}
 }
 
-func CreateSuccessResponse(data models.RegisterDataResponse) *models.UserResponse {
+func CreateSuccessResponse(data interface{}) *models.UserResponse {
 	return &models.UserResponse{
 		Data:    data,
 		Status:  true,

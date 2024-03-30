@@ -9,6 +9,11 @@ type UserReg struct {
 	Password string `json:"password"`
 }
 
+type UserLogIn struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
+}
+
 // response
 type UserResponse struct {
 	Data    interface{}          `json:"data"`
@@ -18,5 +23,9 @@ type UserResponse struct {
 }
 
 type RegisterDataResponse struct {
-	UserReg
+	User UserReg
+}
+
+type UserListREsponse struct {
+	User map[int]UserReg
 }
