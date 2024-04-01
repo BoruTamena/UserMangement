@@ -20,10 +20,9 @@ func main() {
 	auth := handlers.NewAuthHandler(user)
 
 	// starting server
-
 	http.HandleFunc("/user", hr.Register)
 	http.HandleFunc("/users", hr.ListUser)
-	http.HandleFunc("/upload", handlers.UploadFile)
+	http.HandleFunc("/upload", hr.UploadFile)
 	http.HandleFunc("/login", auth.Login)
 
 	log.Fatal(http.ListenAndServe(":3000", nil))

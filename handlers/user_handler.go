@@ -11,6 +11,7 @@ import (
 	error_code "github.com/BoruTamena/UserManagement/entity"
 	"github.com/BoruTamena/UserManagement/models"
 	"github.com/BoruTamena/UserManagement/services"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type handRepo struct {
@@ -36,8 +37,9 @@ func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// // creating a database
-	// user_db := db.UserDb{}
+	// encrypting password
+
+	user.Password = password_hashing(user.Password)
 
 	// inserting user into
 	res_data := hr.Insert(user)
@@ -86,9 +88,14 @@ func (hr handRepo) ListUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func UploadFile(w http.ResponseWriter, r *http.Request) {
+func (hr handRepo) UploadFile(w http.ResponseWriter, r *http.Request) {
 
-	r.ParseMultipartForm(10 << 20) // parsing
+	err := r.ParseMultipartForm(10 << 20) // parsing
+
+	if err != nil {
+
+		log.Fatal(err)
+	}
 
 	file, handler, err := r.FormFile("file") // retirive file
 
@@ -104,7 +111,7 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	// creating new file
 
-	newfile, err := os.Create("./upload/" + handler.Filename)
+	newfile, err := os.Create("./upload" + handler.Filename)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -121,7 +128,23 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	w.Header().Set("Content-Type", "application/json")
+
 	json.NewEncoder(w).Encode("File Uploaded successfully")
+
+}
+
+func password_hashing(password string) string {
+
+	hash_pas, _ := bcrypt.GenerateFromPassword([]byte(password), 8)
+
+	return string(hash_pas)
+
+}
+
+func ComparePassword(hash_pass, password string) bool {
+
+	err := bcrypt.CompareHashAndPassword([]byte(hash_pass), []byte(password))
+
+	return err == nil
 
 }

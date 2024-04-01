@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/BoruTamena/UserManagement/db"
 	"github.com/BoruTamena/UserManagement/models"
@@ -21,7 +22,21 @@ func NewAuthHandler(userdb *db.UserDb) *authRepo {
 	}
 }
 
-func (hr authRepo) Login(w http.ResponseWriter, r *http.Request) {
+func (ah authRepo) getuser(username string) models.UserReg {
+
+	data := ah.Data
+
+	for _, item := range data {
+
+		if strings.EqualFold(item.UserName, username) {
+			return item
+		}
+	}
+
+	return models.UserReg{}
+}
+
+func (ah authRepo) Login(w http.ResponseWriter, r *http.Request) {
 
 	var user models.UserLogIn
 
@@ -33,6 +48,15 @@ func (hr authRepo) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// checking user creditialities
+
+	user_detail := ah.getuser(user.UserName)
+
+	if ok := ComparePassword(user_detail.Password, user.Password); !ok {
+
+		w.WriteHeader(http.StatusUnauthorized)
+
+		return
+	}
 
 	//creating token
 	token, err := services.CreateToken(user)
