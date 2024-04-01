@@ -59,17 +59,60 @@ func (ah authRepo) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//creating token
-	token, err := services.CreateToken(user)
+	token, refresh, err := services.CreateToken(user_detail)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Print(err)
 	}
 
+	resp := map[string]string{
+
+		"access_token":  token,
+		"refresh_token": refresh,
+	}
 	w.WriteHeader(http.StatusAccepted)
 
 	log.Print(token)
-	json.NewEncoder(w).Encode(token)
+	json.NewEncoder(w).Encode(resp)
+
+}
+
+func (ah authRepo) Refersh(w http.ResponseWriter, r *http.Request) {
+
+	refToken := models.RefreshTokenReq{}
+
+	err := json.NewDecoder(r.Body).Decode(&refToken)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// validating the token
+
+	err = services.ParseRefreshToken(refToken.RefreshToken)
+
+	if err != nil {
+
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+	}
+
+	// generating new token
+
+	accesstoken, err := services.GenerateToken(1)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+
+	}
+	res := map[string]string{
+
+		"access": accesstoken,
+	}
+
+	json.NewEncoder(w).Encode(res)
 
 }
 

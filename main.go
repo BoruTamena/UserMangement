@@ -24,6 +24,7 @@ func main() {
 	http.HandleFunc("/users", hr.ListUser)
 	http.HandleFunc("/upload", hr.UploadFile)
 	http.HandleFunc("/login", auth.Login)
+	http.HandleFunc("/refresh", auth.Refersh)
 
 	log.Fatal(http.ListenAndServe(":3000", nil))
 

@@ -4,14 +4,17 @@ import error_code "github.com/BoruTamena/UserManagement/entity"
 
 // request
 type UserReg struct {
-	Id       int    `json:"id"`
-	UserName string `json:"username"`
-	Password string `json:"password"`
+	Id int `json:"id"`
+	UserLogIn
 }
 
 type UserLogIn struct {
 	UserName string `json:"username"`
 	Password string `json:"password"`
+}
+
+type RefreshTokenReq struct {
+	RefreshToken string ` json:"refreshtoken" `
 }
 
 // response

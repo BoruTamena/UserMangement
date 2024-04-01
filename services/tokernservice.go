@@ -7,54 +7,72 @@ import (
 
 	"github.com/BoruTamena/UserManagement/models"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/joho/godotenv"
 )
 
-func CreateToken(userclaim models.UserLogIn) (string, error) {
+const (
+	accessTokenExpireDuration  = time.Minute * 15
+	refreshTokenExpireDuration = time.Hour * 24 * 7
+)
 
-	// creating token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": userclaim.UserName,
-		"exp":      time.Now().Add(time.Minute * 15).Unix(),
+func CreateToken(userClaim models.UserReg) (string, string, error) {
+	// Creating access token
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId": userClaim.Id, // Change "UserId" to "userId" for consistency
+		"exp":    time.Now().Add(accessTokenExpireDuration).Unix(),
 	})
 
-	err := godotenv.Load(".env")
+	// Creating refresh token
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId": userClaim.Id,
+		"exp":    time.Now().Add(refreshTokenExpireDuration).Unix(),
+	})
+
+	// Signing tokens
+	accessTokenStr, err := accessToken.SignedString([]byte(os.Getenv("SCERATEKEY")))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	token_str, err := token.SignedString([]byte(os.Getenv("SCERATEKEY")))
 
+	refreshTokenStr, err := refreshToken.SignedString([]byte(os.Getenv("SCERATEKEY")))
 	if err != nil {
-
-		return "", err
-
+		return "", "", err
 	}
 
-	return token_str, nil
+	return accessTokenStr, refreshTokenStr, nil
+}
 
+func GenerateToken(userID int) (string, error) {
+	claims := jwt.MapClaims{
+		"userId": userID,
+		"exp":    time.Now().Add(accessTokenExpireDuration).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(os.Getenv("SCERATEKEY")))
 }
 
 func ParseAccessToken(accessToken string) error {
+	return parseToken(accessToken)
+}
 
-	parse_token, err := jwt.Parse(accessToken, func(t *jwt.Token) (interface{}, error) {
+func ParseRefreshToken(refreshToken string) error {
+	return parseToken(refreshToken)
+}
 
-		err := godotenv.Load(".env")
-		if err != nil {
-			return "", err
-		}
-		key := []byte(os.Getenv("SCERATEKEY"))
-
-		return key, nil
+func parseToken(tokenString string) error {
+	// Parse token
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("SCERATEKEY")), nil
 	})
 
+	// Check for parsing errors
 	if err != nil {
 		return err
 	}
 
-	if !parse_token.Valid {
-
-		return fmt.Errorf("Invalid token ")
+	// Check token validity
+	if !token.Valid {
+		return fmt.Errorf("invalid token")
 	}
-	return nil
 
+	return nil
 }

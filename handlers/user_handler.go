@@ -94,7 +94,9 @@ func (hr handRepo) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		log.Fatal(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Println("error parsing multipart form ", err)
+		return
 	}
 
 	file, handler, err := r.FormFile("file") // retirive file
@@ -102,8 +104,7 @@ func (hr handRepo) UploadFile(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Print(err)
-
+		log.Println("error reteriving file :", err)
 		return
 	}
 
@@ -115,6 +116,7 @@ func (hr handRepo) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Println("error creating file :", err)
 		return
 	}
 
@@ -124,6 +126,7 @@ func (hr handRepo) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Println("error copying file data : ", err)
 		return
 	}
 
