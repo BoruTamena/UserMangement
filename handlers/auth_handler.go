@@ -38,6 +38,12 @@ func (ah authRepo) getuser(username string) models.UserReg {
 
 func (ah authRepo) Login(w http.ResponseWriter, r *http.Request) {
 
+	if r.Method != http.MethodPost {
+
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var user models.UserLogIn
 
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -80,6 +86,12 @@ func (ah authRepo) Login(w http.ResponseWriter, r *http.Request) {
 
 func (ah authRepo) Refersh(w http.ResponseWriter, r *http.Request) {
 
+	if r.Method != http.MethodPost {
+
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
 	refToken := models.RefreshTokenReq{}
 
 	err := json.NewDecoder(r.Body).Decode(&refToken)
@@ -91,7 +103,7 @@ func (ah authRepo) Refersh(w http.ResponseWriter, r *http.Request) {
 
 	// validating the token
 
-	err = services.ParseRefreshToken(refToken.RefreshToken)
+	_, err = services.ParseRefreshToken(refToken.RefreshToken)
 
 	if err != nil {
 
@@ -100,7 +112,7 @@ func (ah authRepo) Refersh(w http.ResponseWriter, r *http.Request) {
 
 	// generating new token
 
-	accesstoken, err := services.GenerateToken(1)
+	accesstoken, err := services.RefreshAccessToken(refToken.RefreshToken)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -114,15 +126,4 @@ func (ah authRepo) Refersh(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(res)
 
-}
-
-func Auth(handler http.HandlerFunc) http.HandlerFunc {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		// performing authentication here
-
-		handler.ServeHTTP(w, r)
-
-	}
 }

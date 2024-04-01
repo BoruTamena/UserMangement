@@ -11,7 +11,7 @@ import (
 
 const (
 	accessTokenExpireDuration  = time.Minute * 15
-	refreshTokenExpireDuration = time.Hour * 24 * 7
+	refreshTokenExpireDuration = time.Hour * 24 * 7 // for 7days or 1 week
 )
 
 func CreateToken(userClaim models.UserReg) (string, string, error) {
@@ -50,15 +50,41 @@ func GenerateToken(userID int) (string, error) {
 	return token.SignedString([]byte(os.Getenv("SCERATEKEY")))
 }
 
-func ParseAccessToken(accessToken string) error {
+func RefreshAccessToken(refreshToken string) (string, error) {
+	// Parse refresh token
+	token, err := parseToken(refreshToken)
+	if err != nil {
+		return "", err
+	}
+
+	// Extract user ID from refresh token
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("invalid refresh token claims")
+	}
+	userID, ok := claims["userId"].(float64)
+	if !ok {
+		return "", fmt.Errorf("invalid user ID in refresh token")
+	}
+
+	// Generate new access token
+	newAccessToken, err := GenerateToken(int(userID))
+	if err != nil {
+		return "", err
+	}
+
+	return newAccessToken, nil
+}
+
+func ParseAccessToken(accessToken string) (*jwt.Token, error) {
 	return parseToken(accessToken)
 }
 
-func ParseRefreshToken(refreshToken string) error {
+func ParseRefreshToken(refreshToken string) (*jwt.Token, error) {
 	return parseToken(refreshToken)
 }
 
-func parseToken(tokenString string) error {
+func parseToken(tokenString string) (*jwt.Token, error) {
 	// Parse token
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("SCERATEKEY")), nil
@@ -66,13 +92,13 @@ func parseToken(tokenString string) error {
 
 	// Check for parsing errors
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Check token validity
 	if !token.Valid {
-		return fmt.Errorf("invalid token")
+		return nil, fmt.Errorf("invalid token")
 	}
 
-	return nil
+	return token, nil
 }

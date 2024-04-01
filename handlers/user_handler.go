@@ -26,6 +26,12 @@ func NewHandler(userdb *db.UserDb) *handRepo {
 
 func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 
+	if r.Method != http.MethodPost {
+
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var user models.UserReg
 
 	err := json.NewDecoder(r.Body).Decode(&user)
@@ -61,6 +67,12 @@ func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 
 func (hr handRepo) ListUser(w http.ResponseWriter, r *http.Request) {
 
+	if r.Method != http.MethodGet {
+
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
 	// getting token
 	token := r.Header.Get("Authorization")
 
@@ -69,7 +81,7 @@ func (hr handRepo) ListUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := services.ParseAccessToken(token)
+	_, err := services.ParseAccessToken(token)
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -89,6 +101,12 @@ func (hr handRepo) ListUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (hr handRepo) UploadFile(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
 
 	err := r.ParseMultipartForm(10 << 20) // parsing
 
