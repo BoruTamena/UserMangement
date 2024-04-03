@@ -8,6 +8,11 @@ type UserReg struct {
 	UserLogIn
 }
 
+type UserProfile struct {
+	UserReg
+	img []string
+}
+
 type UserLogIn struct {
 	UserName string `json:"username"`
 	Password string `json:"password"`

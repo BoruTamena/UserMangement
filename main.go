@@ -21,8 +21,8 @@ func main() {
 
 	// starting server
 	http.HandleFunc("/user", hr.Register)
-	http.HandleFunc("/users", hr.ListUser)
-	http.HandleFunc("/upload", hr.UploadFile)
+	http.HandleFunc("/users", handlers.Auth(hr.ListUser))
+	http.HandleFunc("/upload", hr.UploadHandler)
 	http.HandleFunc("/login", auth.Login)
 	http.HandleFunc("/refresh", auth.Refersh)
 

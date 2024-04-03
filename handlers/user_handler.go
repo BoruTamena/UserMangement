@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/BoruTamena/UserManagement/db"
 	error_code "github.com/BoruTamena/UserManagement/entity"
 	"github.com/BoruTamena/UserManagement/models"
-	"github.com/BoruTamena/UserManagement/services"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -73,22 +74,6 @@ func (hr handRepo) ListUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// getting token
-	token := r.Header.Get("Authorization")
-
-	if token == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	_, err := services.ParseAccessToken(token)
-
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(err.Error())
-		return
-	}
-
 	// fetching users list
 	res_data := hr.Select()
 
@@ -100,58 +85,52 @@ func (hr handRepo) ListUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (hr handRepo) UploadFile(w http.ResponseWriter, r *http.Request) {
+func (hr handRepo) UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed ", http.StatusMethodNotAllowed)
+		log.Print(r.Method)
 		return
+
 	}
 
-	err := r.ParseMultipartForm(10 << 20) // parsing
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 
 	if err != nil {
-
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Println("error parsing multipart form ", err)
 		return
 	}
 
-	file, handler, err := r.FormFile("file") // retirive file
-
+	file, handler, err := r.FormFile("image")
 	if err != nil {
-
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Println("error reteriving file :", err)
 		return
 	}
-
 	defer file.Close()
 
-	// creating new file
-
-	newfile, err := os.Create("./upload" + handler.Filename)
-
+	// Generate a unique filename to avoid collisions
+	filename := handler.Filename
+	uploadDir := "./upload"
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		os.Mkdir(uploadDir, 0755)
+	}
+	filepath := filepath.Join(uploadDir, filename)
+	f, err := os.Create(filepath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Println("error creating file :", err)
+		return
+	}
+	defer f.Close()
+
+	// Buffered copy for better performance
+	_, err = io.Copy(f, file)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	defer newfile.Close()
-
-	_, err = io.Copy(newfile, file)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Println("error copying file data : ", err)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode("File Uploaded successfully")
-
+	fmt.Fprintf(w, "Image uploaded successfully!")
 }
 
 func password_hashing(password string) string {

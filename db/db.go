@@ -31,8 +31,6 @@ func (user *UserDb) Insert(user_req models.UserReg) *models.UserResponse {
 		return CreateFaildResponse(error_code.InvalidRequest, InvalidPasswordMsg)
 	}
 
-	// hashing password
-
 	// append user to userdb
 
 	user.Data[user_req.Id] = user_req
