@@ -6,9 +6,20 @@ import (
 
 	"github.com/BoruTamena/UserManagement/db"
 	"github.com/BoruTamena/UserManagement/handlers"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+
+	// loading env variable
+
+	err := godotenv.Load(".env")
+
+	if err != nil {
+		log.Print(err.Error())
+
+		return
+	}
 
 	// creating user db
 
