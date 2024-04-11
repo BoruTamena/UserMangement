@@ -14,13 +14,18 @@ func NameValidation(username string) bool {
 }
 
 func PasswordValidation(password string) bool {
-	regex, _ := regexp.Compile(`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$`)
+	regex, err := regexp.Compile(`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$`)
+	if err != nil {
+		log.Println("Error compiling regex:", err)
+		return false
+	}
 	return regex.MatchString(password)
 }
 
 func PhoneNumberValidation(phoneNumber string) bool {
 
-	regex, _ := regexp.Compile(`^(\+251)?(9)[1-59]\d{7}$`)
+	log.Println(phoneNumber)
+	regex := regexp.MustCompile(`^\+2519\d{8}$`)
 	return regex.MatchString(phoneNumber)
 
 }
@@ -49,10 +54,10 @@ func ValidateUser(user models.User) bool {
 		return false
 	}
 
-	// if !PhoneNumberValidation(user.PhoneNumber) {
-	// 	log.Println("Invalid Phonenumber")
-	// 	return false
-	// }
+	if !PhoneNumberValidation(user.PhoneNumber) {
+		log.Println("Invalid Phonenumber", user.PhoneNumber)
+		return false
+	}
 
 	// if !PasswordValidation(user.Password) {
 	// 	log.Println("Invalid Password")

@@ -6,7 +6,7 @@ type Phone string
 type User struct {
 	Id int `json:"id" `
 	UserLogIn
-	PhoneNumber string   `json:"phonenumber ,omitempty"`
+	PhoneNumber string   `json:"phonenumber,omitempty"`
 	Email       string   `json:"email, omitempty" `
 	Image       []string `json:"image, omitempty" `
 	Address     string   `json:"address, omitempty" `

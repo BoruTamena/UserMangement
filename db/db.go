@@ -40,6 +40,7 @@ func (user *UserDb) Select() *models.ResponseData {
 
 func (user *UserDb) SelectPagination(limit int, offset int) []models.User {
 
+	limit = offset + limit
 	resData := user.Data[offset:limit]
 
 	return resData
