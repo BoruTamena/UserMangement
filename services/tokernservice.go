@@ -14,7 +14,7 @@ const (
 	refreshTokenExpireDuration = time.Hour * 24 * 7 // for 7days or 1 week
 )
 
-func CreateToken(userClaim models.UserReg) (string, string, error) {
+func CreateToken(userClaim models.User) (string, string, error) {
 	// Creating access token
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userId": userClaim.Id, // Change "UserId" to "userId" for consistency

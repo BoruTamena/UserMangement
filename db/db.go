@@ -11,47 +11,38 @@ const (
 )
 
 type UserDb struct {
-	Data map[int]models.UserReg
+	Data []models.User
 }
+
+// Other code here...
 
 func NewUserDb() *UserDb {
 	return &UserDb{
-		Data: make(map[int]models.UserReg),
+		Data: make([]models.User, 0),
 	}
 }
 
-func (user *UserDb) Insert(user_req models.UserReg) *models.UserResponse {
+func (user *UserDb) Insert(userReq models.User) *models.UserRegistrationResponse {
+	// Append user to userDb
+	user.Data = append(user.Data, userReq)
 
-	if len(user_req.UserName) == 0 {
-
-		return CreateFaildResponse(error_code.InvalidRequest, InvalidUserNameErrMsg)
-	}
-
-	if len(user_req.Password) == 0 {
-		return CreateFaildResponse(error_code.InvalidRequest, InvalidPasswordMsg)
-	}
-
-	// append user to userdb
-
-	user.Data[user_req.Id] = user_req
-
-	// creating response data
-	res_data := models.RegisterDataResponse{
-		User: user_req,
-	}
-
-	return CreateSuccessResponse(res_data)
-
+	return CreateRegisterResponse(user.Data)
 }
 
-func (user *UserDb) Select() *models.UserResponse {
-
-	// prepareing the response data
-	res_data := models.UserListREsponse{
+func (user *UserDb) Select() *models.ResponseData {
+	// Preparing the response data
+	resData := models.UserListResponse{
 		User: user.Data,
 	}
 
-	return CreateSuccessResponse(res_data)
+	return CreateSuccessResponse(models.MetaData{}, resData)
+}
+
+func (user *UserDb) SelectPagination(limit int, offset int) []models.User {
+
+	resData := user.Data[offset:limit]
+
+	return resData
 
 }
 
@@ -65,11 +56,15 @@ func CreateFaildResponse(code error_code.ErrorCode, message string) *models.User
 	}
 }
 
-func CreateSuccessResponse(data interface{}) *models.UserResponse {
-	return &models.UserResponse{
-		Data:    data,
-		Status:  true,
-		Code:    error_code.Success,
-		Err_msg: error_code.SuccessMssg,
+func CreateSuccessResponse(metadata models.MetaData, Data interface{}) *models.ResponseData {
+	return &models.ResponseData{
+		Metadata: metadata,
+		Data:     Data,
+	}
+}
+
+func CreateRegisterResponse(data interface{}) *models.UserRegistrationResponse {
+	return &models.UserRegistrationResponse{
+		Data: data,
 	}
 }

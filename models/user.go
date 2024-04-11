@@ -31,9 +31,9 @@ type UserResponse struct {
 }
 
 type RegisterDataResponse struct {
-	User UserReg
+	User User
 }
 
-type UserListREsponse struct {
-	User map[int]UserReg
+type UserListResponse struct {
+	User []User
 }

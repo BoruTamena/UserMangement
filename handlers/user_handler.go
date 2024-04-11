@@ -1,18 +1,25 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/BoruTamena/UserManagement/db"
 	error_code "github.com/BoruTamena/UserManagement/entity"
+	"github.com/BoruTamena/UserManagement/validation"
+
 	"github.com/BoruTamena/UserManagement/models"
 	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	keyerr = "err"
 )
 
 type handRepo struct {
@@ -27,20 +34,33 @@ func NewHandler(userdb *db.UserDb) *handRepo {
 
 func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 
+	// time.Sleep(time.Second * 2) // simulate
+
 	if r.Method != http.MethodPost {
 
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var user models.UserReg
+	var user models.User
 
 	err := json.NewDecoder(r.Body).Decode(&user)
 
 	if err != nil {
 
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		erobj := newError(err, ErrorT(error_code.UnableToSave), 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
+		return
+	}
 
+	if !validation.ValidateUser(user) {
+
+		erobj := newError(err, ErrorT(error_code.UnableToSave), 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
 		return
 	}
 
@@ -51,16 +71,16 @@ func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 	// inserting user into
 	res_data := hr.Insert(user)
 
-	if res_data.Code == error_code.InvalidRequest {
+	// if res_data.Code == error_code.InvalidRequest {
 
-		w.WriteHeader(http.StatusBadRequest)
-	}
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// }
 
-	if res_data.Code == error_code.Success {
+	// if res_data.Code == error_code.Success {
 
-		w.WriteHeader(http.StatusCreated)
+	// 	w.WriteHeader(http.StatusCreated)
 
-	}
+	// }
 
 	json.NewEncoder(w).Encode(res_data)
 
@@ -74,63 +94,124 @@ func (hr handRepo) ListUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// fetching users list
-	res_data := hr.Select()
+	if page := r.URL.Query().Get("page"); page != "" {
 
-	if res_data.Code == error_code.Success {
-		w.WriteHeader(http.StatusOK)
+		hr.ListUserPagination(w, r)
+
+		return
+
+	} else {
+		// fetching users list
+		res_data := hr.Select()
+
+		// if res_data.Code == error_code.Success {
+		// 	w.WriteHeader(http.StatusOK)
+		// }
+
+		json.NewEncoder(w).Encode(res_data)
+
 	}
+
+}
+
+func (hr handRepo) ListUserPagination(w http.ResponseWriter, r *http.Request) {
+
+	pagination := models.PaginationReq{
+		Page:     r.URL.Query().Get("page"),
+		PageSize: r.URL.Query().Get("page_size"),
+	}
+
+	page, err := strconv.Atoi(pagination.Page)
+
+	if err != nil {
+
+		erobj := newError(err, ErrorT(error_code.UnableToSave), 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
+		return
+
+	}
+
+	pagesize, err := strconv.Atoi(pagination.PageSize)
+
+	if err != nil {
+
+		erobj := newError(err, "Un Able To Read ", 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
+		return
+
+	}
+
+	offset := (page - 1) * pagesize
+
+	// fetching data
+
+	data := hr.SelectPagination(pagesize, offset)
+
+	meta_data := models.MetaData{
+		Page:    page,
+		PerPage: pagesize,
+	}
+
+	res_data := hr.CreateResponse(meta_data, data)
 
 	json.NewEncoder(w).Encode(res_data)
 
 }
 
-func (hr handRepo) UploadHandler(w http.ResponseWriter, r *http.Request) {
+func UploadImage(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
-
-		http.Error(w, "Method not allowed ", http.StatusMethodNotAllowed)
-		log.Print(r.Method)
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		log.Print("method err :")
 		return
-
 	}
 
-	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
-
+	// Parse multipart form
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max file size
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Println("parse err:", err)
 		return
 	}
 
+	// Get the file from the form
 	file, handler, err := r.FormFile("image")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Println("read error:", err)
 		return
 	}
 	defer file.Close()
 
-	// Generate a unique filename to avoid collisions
-	filename := handler.Filename
-	uploadDir := "./upload"
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		os.Mkdir(uploadDir, 0755)
+	// Save the file
+	fileName := handler.Filename
+	if fileName == "" {
+		http.Error(w, "Image file name is empty", http.StatusBadRequest)
+		log.Println("read file name:", err)
+		return
 	}
-	filepath := filepath.Join(uploadDir, filename)
-	f, err := os.Create(filepath)
+
+	f, err := os.OpenFile(filepath.Join("./uploads", fileName), os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Println("Open file err:", err)
 		return
 	}
 	defer f.Close()
+	io.Copy(f, file)
 
-	// Buffered copy for better performance
-	_, err = io.Copy(f, file)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (hr handRepo) CreateResponse(metadata models.MetaData, Data interface{}) *models.ResponseData {
+	return &models.ResponseData{
+		Metadata: metadata,
+		Data:     Data,
 	}
-
-	fmt.Fprintf(w, "Image uploaded successfully!")
 }
 
 func password_hashing(password string) string {

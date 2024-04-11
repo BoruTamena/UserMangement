@@ -22,7 +22,7 @@ func NewAuthHandler(userdb *db.UserDb) *authRepo {
 	}
 }
 
-func (ah authRepo) getuser(username string) models.UserReg {
+func (ah authRepo) getuser(username string) models.User {
 
 	data := ah.Data
 
@@ -33,7 +33,7 @@ func (ah authRepo) getuser(username string) models.UserReg {
 		}
 	}
 
-	return models.UserReg{}
+	return models.User{}
 }
 
 func (ah authRepo) Login(w http.ResponseWriter, r *http.Request) {
@@ -125,32 +125,5 @@ func (ah authRepo) Refersh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(res)
-
-}
-
-//  middle ware
-
-func Auth(handler http.HandlerFunc) http.HandlerFunc {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		// getting token
-		token := r.Header.Get("Authorization")
-
-		if token == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		_, err := services.ParseAccessToken(token)
-
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(err.Error())
-			return
-		}
-
-		handler.ServeHTTP(w, r)
-	}
 
 }
