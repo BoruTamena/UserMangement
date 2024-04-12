@@ -4,8 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"net/http"
 
+	error_code "github.com/BoruTamena/UserManagement/entity"
+	"github.com/BoruTamena/UserManagement/handlers"
 	"github.com/BoruTamena/UserManagement/services"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -40,7 +43,11 @@ func AddValueMiddleWare(next http.HandlerFunc) http.HandlerFunc {
 
 		if accesstoken == "" {
 
-			http.Error(w, "UnAuthorized Access", http.StatusUnauthorized)
+			erobj := handlers.NewError(errors.New("Access token is not provided"), handlers.ErrorT(error_code.Unauthorized), 500)
+			ctx := context.WithValue(r.Context(), "err", erobj)
+			r = r.WithContext(ctx)
+			erobj.HandleError(w, r)
+			return
 
 		}
 
@@ -48,15 +55,23 @@ func AddValueMiddleWare(next http.HandlerFunc) http.HandlerFunc {
 
 		if err != nil {
 
-			http.Error(w, "Interanal Server Error", http.StatusInternalServerError)
+			erobj := handlers.NewError(err, handlers.ErrorT(error_code.UnableToSave), 500)
+			ctx := context.WithValue(r.Context(), "err", erobj)
+			r = r.WithContext(ctx)
+			erobj.HandleError(w, r)
 			return
+
 		}
 
 		token, err := services.ParseAccessToken(accesstoken)
 		if err != nil {
 
-			http.Error(w, "Interanal Server Error", http.StatusInternalServerError)
+			erobj := handlers.NewError(errors.New("Invalid access token"), handlers.ErrorT(error_code.Unauthorized), 500)
+			ctx := context.WithValue(r.Context(), "err", erobj)
+			r = r.WithContext(ctx)
+			erobj.HandleError(w, r)
 			return
+
 		}
 
 		// Extract user ID from refresh token

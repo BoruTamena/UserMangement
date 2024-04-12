@@ -48,7 +48,7 @@ func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		erobj := newError(err, ErrorT(error_code.UnableToSave), 500)
+		erobj := NewError(err, ErrorT(error_code.UnableToSave), 500)
 		ctx := context.WithValue(r.Context(), "err", erobj)
 		r = r.WithContext(ctx)
 		erobj.HandleError(w, r)
@@ -57,7 +57,7 @@ func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 
 	if !validation.ValidateUser(user) {
 
-		erobj := newError(err, ErrorT(error_code.UnableToSave), 500)
+		erobj := NewError(err, ErrorT(error_code.UnableToSave), 500)
 		ctx := context.WithValue(r.Context(), "err", erobj)
 		r = r.WithContext(ctx)
 		erobj.HandleError(w, r)
@@ -85,17 +85,11 @@ func (hr handRepo) ListUser(w http.ResponseWriter, r *http.Request) {
 	if page := r.URL.Query().Get("page"); page != "" {
 
 		hr.ListUserPagination(w, r)
-
 		return
 
 	} else {
 		// fetching users list
 		res_data := hr.Select()
-
-		// if res_data.Code == error_code.Success {
-		// 	w.WriteHeader(http.StatusOK)
-		// }
-
 		json.NewEncoder(w).Encode(res_data)
 
 	}
@@ -113,7 +107,7 @@ func (hr handRepo) ListUserPagination(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		erobj := newError(err, ErrorT(error_code.UnableToSave), 500)
+		erobj := NewError(err, ErrorT(error_code.UnableToSave), 500)
 		ctx := context.WithValue(r.Context(), "err", erobj)
 		r = r.WithContext(ctx)
 		erobj.HandleError(w, r)
@@ -125,7 +119,7 @@ func (hr handRepo) ListUserPagination(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		erobj := newError(err, "Un Able To Read ", 500)
+		erobj := NewError(err, "Un Able To Read ", 500)
 		ctx := context.WithValue(r.Context(), "err", erobj)
 		r = r.WithContext(ctx)
 		erobj.HandleError(w, r)
@@ -137,7 +131,16 @@ func (hr handRepo) ListUserPagination(w http.ResponseWriter, r *http.Request) {
 
 	// fetching data
 
-	data := hr.SelectPagination(pagesize, offset)
+	data, err := hr.SelectPagination(pagesize, offset)
+
+	if err != nil {
+
+		erobj := NewError(err, ErrorT(error_code.UnableToRead), 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
+		return
+	}
 
 	meta_data := models.MetaData{
 		Page:    page,
@@ -161,16 +164,22 @@ func (hr handRepo) UploadImage(w http.ResponseWriter, r *http.Request) {
 	// Parse multipart form
 	err := r.ParseMultipartForm(10 << 20) // 10 MB max file size
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Println("parse err:", err)
+
+		erobj := NewError(err, ErrorT(error_code.UnableToSave), 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
 		return
 	}
 
 	// Get the file from the form
 	file, handler, err := r.FormFile("image")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Println("read error:", err)
+
+		erobj := NewError(err, ErrorT(error_code.UnableToSave), 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
 		return
 	}
 	defer file.Close()
@@ -178,15 +187,19 @@ func (hr handRepo) UploadImage(w http.ResponseWriter, r *http.Request) {
 	// Save the file
 	fileName := handler.Filename
 	if fileName == "" {
-		http.Error(w, "Image file name is empty", http.StatusBadRequest)
-		log.Println("read file name:", err)
+		erobj := NewError(err, ErrorT(error_code.UnableToSave), 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
 		return
 	}
 
 	f, err := os.OpenFile(filepath.Join("./uploads", fileName), os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Println("Open file err:", err)
+		erobj := NewError(err, ErrorT(error_code.UnableToSave), 500)
+		ctx := context.WithValue(r.Context(), "err", erobj)
+		r = r.WithContext(ctx)
+		erobj.HandleError(w, r)
 		return
 	}
 	defer f.Close()

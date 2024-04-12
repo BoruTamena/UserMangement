@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+
 	error_code "github.com/BoruTamena/UserManagement/entity"
 	"github.com/BoruTamena/UserManagement/models"
 )
@@ -38,12 +40,19 @@ func (user *UserDb) Select() *models.ResponseData {
 	return CreateSuccessResponse(models.MetaData{}, resData)
 }
 
-func (user *UserDb) SelectPagination(limit int, offset int) []models.User {
+func (user *UserDb) SelectPagination(limit int, offset int) ([]models.User, error) {
 
 	limit = offset + limit
+
+	if limit > len(user.Data) {
+
+		return nil, fmt.Errorf("Length exceed ")
+
+	}
+
 	resData := user.Data[offset:limit]
 
-	return resData
+	return resData, nil
 
 }
 
