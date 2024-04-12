@@ -24,21 +24,21 @@ func main() {
 	// creating user db
 
 	user := db.NewUserDb()
+
 	// create repo
 
 	hr := handlers.NewHandler(user)
 	auth := handlers.NewAuthHandler(user)
 
-	// creating server mux
+	// creating server
 
 	mux := http.NewServeMux()
-
 	mux.HandleFunc("/user", hr.Register)
 	mux.HandleFunc("/users", middleware.AddValueMiddleWare(middleware.Auth(hr.ListUser)))
-	mux.HandleFunc("/upload", hr.UploadImage)
+	mux.HandleFunc("/upload", middleware.AddValueMiddleWare(hr.UploadImage))
+	mux.HandleFunc("/image", middleware.AddValueMiddleWare(hr.GetImage))
 	mux.HandleFunc("/login", auth.Login)
 	mux.HandleFunc("/refresh", auth.Refersh)
-
-	log.Fatal(http.ListenAndServe(":3000", middleware.TimeOutMiddleware(mux)))
+	log.Fatal(http.ListenAndServe(":8080", middleware.TimeOutMiddleware(mux)))
 
 }

@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/BoruTamena/UserManagement/db"
 	error_code "github.com/BoruTamena/UserManagement/entity"
@@ -35,7 +34,7 @@ func NewHandler(userdb *db.UserDb) *handRepo {
 
 func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 
-	time.Sleep(time.Second * 2) // simulate
+	// time.Sleep(time.Second * 2) // simulate
 
 	if r.Method != http.MethodPost {
 
@@ -66,22 +65,10 @@ func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// encrypting password
-
 	user.Password = password_hashing(user.Password)
 
 	// inserting user into
 	res_data := hr.Insert(user)
-
-	// if res_data.Code == error_code.InvalidRequest {
-
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// }
-
-	// if res_data.Code == error_code.Success {
-
-	// 	w.WriteHeader(http.StatusCreated)
-
-	// }:
 
 	json.NewEncoder(w).Encode(res_data)
 
@@ -165,9 +152,9 @@ func (hr handRepo) ListUserPagination(w http.ResponseWriter, r *http.Request) {
 
 func (hr handRepo) UploadImage(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != "POST" {
+	if r.Method != http.MethodPost {
+
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		log.Print("method err :")
 		return
 	}
 
@@ -205,7 +192,49 @@ func (hr handRepo) UploadImage(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	io.Copy(f, file)
 
+	// save to resource
+
+	user_id := r.Context().Value("UserId")
+	for i, val := range hr.Data {
+
+		if val.Id == user_id {
+
+			hr.Data[i].Image = append(hr.Data[i].Image, f.Name())
+			log.Print("user", val)
+			break
+		}
+
+	}
+
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (hr handRepo) GetImage(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+
+		return
+	}
+
+	user_id := r.Context().Value("UserId")
+
+	var user_img []string
+
+	for i, val := range hr.Data {
+
+		if val.Id == user_id {
+			user_img = hr.Data[i].Image
+			break
+		}
+	}
+
+	res_data := map[string]any{
+		"img": user_img,
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(res_data)
+
 }
 
 func (hr handRepo) CreateResponse(metadata models.MetaData, Data interface{}) *models.ResponseData {

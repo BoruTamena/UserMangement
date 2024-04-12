@@ -38,6 +38,12 @@ func AddValueMiddleWare(next http.HandlerFunc) http.HandlerFunc {
 
 		accesstoken := r.Header.Get("Authorization")
 
+		if accesstoken == "" {
+
+			http.Error(w, "UnAuthorized Access", http.StatusUnauthorized)
+
+		}
+
 		request_id, err := generate_rand_id()
 
 		if err != nil {
