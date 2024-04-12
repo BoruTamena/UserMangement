@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/BoruTamena/UserManagement/db"
 	"github.com/BoruTamena/UserManagement/handlers"
@@ -34,20 +33,12 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/user", middleware.TimeOutMiddleware(hr.Register))
+	mux.HandleFunc("/user", hr.Register)
 	mux.HandleFunc("/users", middleware.AddValueMiddleWare(middleware.Auth(hr.ListUser)))
-	mux.HandleFunc("/upload", handlers.UploadImage)
+	mux.HandleFunc("/upload", hr.UploadImage)
 	mux.HandleFunc("/login", auth.Login)
 	mux.HandleFunc("/refresh", auth.Refersh)
 
-	server := &http.Server{
-
-		Addr:         ":3000",
-		WriteTimeout: time.Second * 5,
-		ReadTimeout:  time.Second * 5,
-		Handler:      mux,
-	}
-
-	log.Fatal(server.ListenAndServe())
+	log.Fatal(http.ListenAndServe(":3000", middleware.TimeOutMiddleware(mux)))
 
 }

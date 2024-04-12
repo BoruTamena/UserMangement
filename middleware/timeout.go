@@ -2,13 +2,14 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 )
 
-func TimeOutMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func TimeOutMiddleware(next http.Handler) http.Handler {
 
-	return func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 
@@ -18,6 +19,23 @@ func TimeOutMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		// replacing request context with new context
 		r = r.WithContext(ctx)
 
-		next.ServeHTTP(w, r)
-	}
+		done := make(chan struct{})
+
+		go func() {
+
+			defer close(done)
+
+			next.ServeHTTP(w, r)
+		}()
+
+		select {
+		case <-r.Context().Done():
+			log.Println("Request timeout exceed")
+			return
+
+		case <-done:
+			return
+		}
+
+	})
 }

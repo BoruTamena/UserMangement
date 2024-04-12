@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/BoruTamena/UserManagement/db"
 	error_code "github.com/BoruTamena/UserManagement/entity"
@@ -34,7 +35,7 @@ func NewHandler(userdb *db.UserDb) *handRepo {
 
 func (hr handRepo) Register(w http.ResponseWriter, r *http.Request) {
 
-	// time.Sleep(time.Second * 2) // simulate
+	time.Sleep(time.Second * 2) // simulate
 
 	if r.Method != http.MethodPost {
 
@@ -162,9 +163,9 @@ func (hr handRepo) ListUserPagination(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func UploadImage(w http.ResponseWriter, r *http.Request) {
+func (hr handRepo) UploadImage(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodPost {
+	if r.Method != "POST" {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		log.Print("method err :")
 		return
